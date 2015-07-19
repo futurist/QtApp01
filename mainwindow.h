@@ -43,7 +43,8 @@ public:
     QDesktopWidget* screen;
     QPoint dragPosition;
     void setWindowPositionAndSize( QRect& fg);
-     QRect getWindowPositionAndSize();
+    QRect getWindowPositionAndSize();
+
 
     QList<QIcon> iconList;
     int currentIconIndex;
@@ -58,6 +59,8 @@ protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
 private slots:
+    void viewTitleChanged(QString str);
+    void viewLoadFinished(bool);
     void showIconMenu();
     void setIcon(int index);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);

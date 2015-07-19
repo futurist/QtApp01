@@ -49,7 +49,7 @@ void MainWindow::createActions()
     connect(maximizeAction, SIGNAL(triggered()), this, SLOT(showMaximized()));
 
     restoreAction = new QAction(tr("&Restore"), this);
-    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormal()));
+    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormalIcon()));
 
     quitAction = new QAction(tr("&Quit"), this);
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
@@ -186,7 +186,28 @@ void MainWindow::updateIcon()
     }
 }
 
+void MainWindow::viewLoadFinished(bool ok){
+    if(ok){
+        qDebug()<<"Web loaded."<<ok;
+        view->page()->runJavaScript(tr("msg('iogjweoij')"));
+    }
+}
 
+/******
+ * we use title to pass parameters, limit is 10K=10240B
+ * think pass data batchly.
+ */
+void MainWindow::viewTitleChanged(QString str){
+
+    showBlinkIcon();
+    QByteArray ba = str.toUtf8();
+    QJsonDocument json = QJsonDocument::fromJson( ba );
+//    qDebug()<<str<<json<<json.array();
+    if(json.isArray()){
+        QJsonObject d = json.array()[0].toObject();
+        //QMessageBox::information(this, "", d["name"].toString());
+    }
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -214,8 +235,11 @@ MainWindow::MainWindow(QWidget *parent) :
     view->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     setCentralWidget(view);
     view->resize(this->size());
-    view->load(QUrl("http://1111hui.com/pdf/web/viewer.html"));
+    view->load(QUrl("file:///Users/mac/Desktop/pdfserver/client/click.html"));
     view->show();
+    connect(view, SIGNAL(loadFinished(bool)), this, SLOT(viewLoadFinished(bool)) );
+    connect(view, SIGNAL(titleChanged(QString)), this, SLOT(viewTitleChanged(QString)) );
+
 
     QPushButton * btn = new QPushButton(this);
     btn->setText("OISJDOFJ");
