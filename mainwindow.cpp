@@ -64,11 +64,15 @@ void MainWindow::createTrayIcon()
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction);
 
+    connect(trayIconMenu, SIGNAL(aboutToShow()), this, SLOT( showIconMenu() ) );
+
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setContextMenu(trayIconMenu);
 }
 
+void MainWindow::showIconMenu(){
 
+}
 
 //! [1]
 void MainWindow::setVisible(bool visible)
@@ -85,11 +89,7 @@ void MainWindow::setVisible(bool visible)
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (trayIcon->isVisible()) {
-        QMessageBox::information(this, tr("Systray"),
-                                 tr("The program will keep running in the "
-                                    "system tray. To terminate the program, "
-                                    "choose <b>Quit</b> in the context menu "
-                                    "of the system tray entry."));
+//        QMessageBox::information(this, tr("Systray"), tr("choose <b>Quit</b> in the context menu "));
         hide();
         event->ignore();
     }
@@ -113,10 +113,18 @@ void MainWindow::setIcon(int index)
 void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     switch (reason) {
+    case QSystemTrayIcon::Context:
+        trayIcon->setContextMenu( new QMenu(this) );
+        QMessageBox::information(this, tr("Systray"), tr("choose <b>Quit</b> in the context menu "));
+
+        break;
     case QSystemTrayIcon::Trigger:
     case QSystemTrayIcon::DoubleClick:
-        currentIconIndex = (currentIconIndex+1) % iconList.count();
-        setIcon(currentIconIndex);
+        showNormalIcon();
+        trayIcon->setContextMenu(trayIconMenu);
+
+//        currentIconIndex = (currentIconIndex+1) % iconList.count();
+//        setIcon(currentIconIndex);
         showMessage();
 
         break;
@@ -132,8 +140,9 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 //! [5]
 void MainWindow::showMessage()
 {
+    QSystemTrayIcon::MessageIcon icon=QSystemTrayIcon::MessageIcon(1);  //设置图表是标准的系统托盘  信息
     trayIcon->showMessage(tr("mmmmm1"), tr("mmmmm2222"),
-                          QSystemTrayIcon::Warning, 5 * 1000);
+                          icon, 5 * 1000);
 }
 //! [5]
 
@@ -147,6 +156,36 @@ void MainWindow::messageClicked()
 //! [6]
 
 
+//恢复正常图标
+void MainWindow::showNormalIcon()
+{
+    TimerCount=0;
+    timer->stop();
+    trayIcon->setIcon(iconList[currentIconIndex]);   //正常显示时候恢复原有图标，防止定时器在无显示图表时候被终止
+    this->show();
+}
+
+//模拟QQ消息到来时候，托盘图表闪动
+void MainWindow::showBlinkIcon()
+{
+    timer->start(500);  //每500ms都刷新一次
+    timer->setSingleShot(false);  //如果为真，表示只重复一次,为假表示无限次循环
+    connect(timer,SIGNAL(timeout()),this,SLOT(updateIcon()));
+}
+//刷新托盘图标
+void MainWindow::updateIcon()
+{
+    TimerCount++;
+    if(TimerCount%2)
+    {
+        trayIcon->setIcon(iconList[0]);   //实际上没有这个图标，然后会显示没有图表
+    }
+    else
+    {
+        trayIcon->setIcon(iconList[1]);
+    }
+}
+
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -154,6 +193,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 
+    timer=new QTimer(this);
+    TimerCount=0;  //初始化为零
     Window();
 
     // transparent background
@@ -179,16 +220,78 @@ MainWindow::MainWindow(QWidget *parent) :
     QPushButton * btn = new QPushButton(this);
     btn->setText("OISJDOFJ");
     btn->show();
-//    connect(btn, SIGNAL( clicked() ), this, SLOT( showMessageBox() ) );
+    connect(btn, SIGNAL( clicked() ), this, SLOT( showBlinkIcon() ) );
 
     QWebView * view2 = new QWebView(parent);
     view2->resize(this->size());
     view2->load(QUrl("http://1111hui.com/pdf/web/viewer.html"));
     //view2->show();
 
+    resize(320, 640);
+
+    screen = new QDesktopWidget();
+    QRect rect = getWindowPositionAndSize();
+    QRect screenRect = screen->availableGeometry();
+    rect.moveTopRight( screenRect.topRight() );
+    setWindowPositionAndSize(rect);
+
+    this->installEventFilter(this);
 
 }
 
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+        if( event->type() == QEvent::NonClientAreaMouseButtonRelease ) {
+            //qDebug() << "Event type:" << event->type();
+            checkEdge();
+        }
+        if ( event->type() == QEvent::Move ) {
+            QMoveEvent *moveEvent = static_cast<QMoveEvent*>(event);
+            //qDebug() << "Move event:" << moveEvent->pos();
+        }
+        return QWidget::eventFilter(obj, event);
+}
+
+
+void MainWindow::checkEdge(){
+    QRect rect = getWindowPositionAndSize();
+    QRect screenRect = screen->availableGeometry();
+
+     if ( rect.right() > screenRect.right()-100  ) {
+        qDebug("Within!!!");
+        move( screenRect.right()-rect.width(), pos().y() );
+     }
+}
+
+void MainWindow::moveEvent(QMoveEvent *e)
+{
+    qDebug()<<"moveEvent:"<<e;
+        //e->ignore();
+
+}
+
+/*****
+ * below code from to move window in client area:
+ * http://www.qtcentre.org/threads/11903-How-do-I-natively-move-a-QWidget-top-level-window
+ *
+void mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        dragPosition = event->globalPos() - frameGeometry().topLeft();
+        event->accept();
+    }
+}
+
+void mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        move(event->globalPos() - dragPosition);
+        event->accept();
+    }
+}
+****/
+
+
+void MainWindow::setWindowPositionAndSize( QRect& fg) {resize(fg.size()); move(fg.topLeft());}
+QRect MainWindow::getWindowPositionAndSize()  { return QRect(pos(), size()); }
 
 void MainWindow::showMessageBox(){
     QString str="Some Text", helper="";

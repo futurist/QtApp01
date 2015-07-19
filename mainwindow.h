@@ -5,6 +5,7 @@
 #include <QtWebEngineWidgets>
 #include <QtWebKitWidgets>
 #include <QSystemTrayIcon>
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -36,19 +37,37 @@ public:
     Ui::MainWindow *ui;
 
 
+
+    QTimer *timer;         //用于闪烁ICON的定时器
+    int TimerCount;      //用于计算定时器超时次数，单数显示图标，双数不显示  并且为0时候表示没有消息
+    QDesktopWidget* screen;
+    QPoint dragPosition;
+    void setWindowPositionAndSize( QRect& fg);
+     QRect getWindowPositionAndSize();
+
     QList<QIcon> iconList;
     int currentIconIndex;
     void Window();
     void setVisible(bool visible) Q_DECL_OVERRIDE;
+    void moveEvent(QMoveEvent *) Q_DECL_OVERRIDE;
+
+     bool eventFilter(QObject *obj, QEvent *event);
+    void checkEdge();
 
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
 private slots:
+    void showIconMenu();
     void setIcon(int index);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void showMessage();
     void messageClicked();
+
+    void showNormalIcon();
+    void showBlinkIcon();
+    void updateIcon();       //定时器刚
+
 
 private:
     void createIconGroupBox();
