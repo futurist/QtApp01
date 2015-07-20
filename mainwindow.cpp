@@ -42,13 +42,13 @@ void MainWindow::Window()
 
 void MainWindow::createActions()
 {
-    minimizeAction = new QAction(tr("Mi&nimize"), this);
+    minimizeAction = new QAction(tr("最小化"), this);
     connect(minimizeAction, SIGNAL(triggered()), this, SLOT(hide()));
 
-    maximizeAction = new QAction(tr("Ma&ximize"), this);
+    maximizeAction = new QAction(tr("最大化"), this);
     connect(maximizeAction, SIGNAL(triggered()), this, SLOT(showMaximized()));
 
-    restoreAction = new QAction(tr("&Restore"), this);
+    restoreAction = new QAction(tr("恢复"), this);
     connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormalIcon()));
 
     quitAction = new QAction(tr("&Quit"), this);
@@ -99,7 +99,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 //! [3]
 void MainWindow::setIcon(int index)
 {
-//    QIcon icon = iconComboBox->itemIcon(index);
     currentIconIndex = index;
     QIcon icon = iconList[index];
     trayIcon->setIcon(icon);
@@ -114,22 +113,23 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     switch (reason) {
     case QSystemTrayIcon::Context:
-        trayIcon->setContextMenu( new QMenu(this) );
-        QMessageBox::information(this, tr("Systray"), tr("choose <b>Quit</b> in the context menu "));
+        //trayIcon->setContextMenu(trayIconMenu);
+        //trayIcon->setContextMenu( new QMenu(this) );
+
 
         break;
     case QSystemTrayIcon::Trigger:
     case QSystemTrayIcon::DoubleClick:
-        showNormalIcon();
-        trayIcon->setContextMenu(trayIconMenu);
+        messageClicked();
+
 
 //        currentIconIndex = (currentIconIndex+1) % iconList.count();
 //        setIcon(currentIconIndex);
-        showMessage();
+
 
         break;
     case QSystemTrayIcon::MiddleClick:
-        showMessage();
+
         break;
     default:
         ;
@@ -138,22 +138,37 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 //! [4]
 
 //! [5]
-void MainWindow::showMessage()
+void MainWindow::showMessage(QString title, QString msg="", int iconNum=1)
 {
-    QSystemTrayIcon::MessageIcon icon=QSystemTrayIcon::MessageIcon(1);  //设置图表是标准的系统托盘  信息
-    trayIcon->showMessage(tr("mmmmm1"), tr("mmmmm2222"),
-                          icon, 5 * 1000);
+    QSystemTrayIcon::MessageIcon icon=QSystemTrayIcon::MessageIcon(iconNum);  //设置图表是标准的系统托盘  信息
+    trayIcon->showMessage(title, msg, icon, 5 * 1000);
 }
 //! [5]
 
 //! [6]
 void MainWindow::messageClicked()
 {
-    QMessageBox::information(0, tr("Systray"),
-                             tr("Sorry, I already gave what help I could.\n"
-                                "Maybe you should try asking a human?"));
+    if(TimerCount>0){
+        showNormalIcon();
+        //QMessageBox::information(0, tr("Systray"), tr("Sorry, I already gave what help I could.\nMaybe you should try asking a human?"));
+        if(pdfurl!=""){
+            openPDFWindow(pdfurl);
+        }
+    }
 }
 //! [6]
+
+
+void MainWindow::openPDFWindow(QString url){
+    QWebView * pdfView = new QWebView();
+    QUrl theurl = QUrl(url);
+    pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    setCentralWidget(pdfView);
+    pdfView->resize(this->size());
+    pdfView->load( theurl );
+    pdfView->show();
+    pdfViewList.append(pdfView);
+}
 
 
 //恢复正常图标
@@ -168,8 +183,9 @@ void MainWindow::showNormalIcon()
 //模拟QQ消息到来时候，托盘图表闪动
 void MainWindow::showBlinkIcon()
 {
+    timer->stop();
     timer->start(500);  //每500ms都刷新一次
-    timer->setSingleShot(false);  //如果为真，表示只重复一次,为假表示无限次循环
+    timer->setSingleShot(true);  //如果为真，表示只重复一次,为假表示无限次循环
     connect(timer,SIGNAL(timeout()),this,SLOT(updateIcon()));
 }
 //刷新托盘图标
@@ -184,27 +200,36 @@ void MainWindow::updateIcon()
     {
         trayIcon->setIcon(iconList[1]);
     }
+    if(TimerCount>0){
+        timer->start(500);  //每500ms都刷新一次
+    }
 }
 
 void MainWindow::viewLoadFinished(bool ok){
     if(ok){
         qDebug()<<"Web loaded."<<ok;
-        view->page()->runJavaScript(tr("msg('iogjweoij')"));
+        view->page()->mainFrame()->evaluateJavaScript(tr("msg('iogjweoij')"));
     }
 }
 
 /******
  * we use title to pass parameters, limit is 10K=10240B
- * think pass data batchly.
+ * think pass data batchly. In Windows+Webkit limit is 1K=1024B
  */
 void MainWindow::viewTitleChanged(QString str){
 
+    qDebug()<<str;
+    if(str=="")return;
+
     showBlinkIcon();
+    showMessage(tr("json received"), str, 1);
+
     QByteArray ba = str.toUtf8();
     QJsonDocument json = QJsonDocument::fromJson( ba );
-//    qDebug()<<str<<json<<json.array();
+
     if(json.isArray()){
         QJsonObject d = json.array()[0].toObject();
+        pdfurl = d["url"].toString();
         //QMessageBox::information(this, "", d["name"].toString());
     }
 }
@@ -231,12 +256,17 @@ MainWindow::MainWindow(QWidget *parent) :
     basewindow->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
     setCentralWidget(basewindow);
 
-    view = new QWebEngineView(this);
+    pdfurl = "";
+    //using webengine
+//    view = new QWebEngineView(this);
+    //using webkit
+    view = new QWebView(this);
     view->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     setCentralWidget(view);
     view->resize(this->size());
-    view->load(QUrl("file:///Users/mac/Desktop/pdfserver/client/click.html"));
+    view->load(QUrl("file:///D:/crx/pdfserver/client/click.html"));
     view->show();
+
     connect(view, SIGNAL(loadFinished(bool)), this, SLOT(viewLoadFinished(bool)) );
     connect(view, SIGNAL(titleChanged(QString)), this, SLOT(viewTitleChanged(QString)) );
 
@@ -246,10 +276,6 @@ MainWindow::MainWindow(QWidget *parent) :
     btn->show();
     connect(btn, SIGNAL( clicked() ), this, SLOT( showBlinkIcon() ) );
 
-    QWebView * view2 = new QWebView(parent);
-    view2->resize(this->size());
-    view2->load(QUrl("http://1111hui.com/pdf/web/viewer.html"));
-    //view2->show();
 
     resize(320, 640);
 
@@ -278,7 +304,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 
 
 void MainWindow::checkEdge(){
-    QRect rect = getWindowPositionAndSize();
+    QRect rect = frameGeometry();
     QRect screenRect = screen->availableGeometry();
 
      if ( rect.right() > screenRect.right()-100  ) {
@@ -289,8 +315,8 @@ void MainWindow::checkEdge(){
 
 void MainWindow::moveEvent(QMoveEvent *e)
 {
-    qDebug()<<"moveEvent:"<<e;
-        //e->ignore();
+    //qDebug()<<"moveEvent:"<<e;
+    //e->ignore();
 
 }
 
@@ -319,7 +345,8 @@ QRect MainWindow::getWindowPositionAndSize()  { return QRect(pos(), size()); }
 
 void MainWindow::showMessageBox(){
     QString str="Some Text", helper="";
-    QString factor = QString::number( view->page()->zoomFactor() );
+//    QString factor = QString::number( view->page()->zoomFactor() );
+    QString factor="";
     QMessageBox msgBox;
     if(helper!="") msgBox.setInformativeText("Do you want to save your changes?");
     msgBox.setTextFormat(Qt::RichText); // this does the magic trick and allows you to click the link

@@ -2,8 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QtWebEngineWidgets>
+//#include <QtWebEngineWidgets>
 #include <QtWebKitWidgets>
+//#include <QWebView>
 #include <QSystemTrayIcon>
 #include <QDebug>
 
@@ -32,7 +33,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QWidget *basewindow;
-    QWebEngineView *view;
+    QWebView *view;
     void showMessageBox();
     Ui::MainWindow *ui;
 
@@ -44,7 +45,8 @@ public:
     QPoint dragPosition;
     void setWindowPositionAndSize( QRect& fg);
     QRect getWindowPositionAndSize();
-
+    QString pdfurl;
+    QList<QWebView *> pdfViewList;
 
     QList<QIcon> iconList;
     int currentIconIndex;
@@ -55,6 +57,8 @@ public:
      bool eventFilter(QObject *obj, QEvent *event);
     void checkEdge();
 
+    void openPDFWindow(QString);
+
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
@@ -64,7 +68,7 @@ private slots:
     void showIconMenu();
     void setIcon(int index);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
-    void showMessage();
+    void showMessage(QString, QString, int);
     void messageClicked();
 
     void showNormalIcon();
