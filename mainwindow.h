@@ -48,6 +48,7 @@ public:
     QString pdfurl;
     QList<QWebView *> pdfViewList;
 
+    QWidget *MainParent;
     QList<QIcon> iconList;
     int currentIconIndex;
     void Window();

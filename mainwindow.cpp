@@ -160,14 +160,16 @@ void MainWindow::messageClicked()
 
 
 void MainWindow::openPDFWindow(QString url){
-    QWebView * pdfView = new QWebView();
+    QWebView * pdfView = new QWebView(0);
     QUrl theurl = QUrl(url);
     pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    setCentralWidget(pdfView);
+    //setCentralWidget(pdfView);
     pdfView->resize(this->size());
     pdfView->load( theurl );
     pdfView->show();
     pdfViewList.append(pdfView);
+    qDebug()<<pdfViewList;
+    pdfView->close()
 }
 
 
@@ -229,15 +231,25 @@ void MainWindow::viewTitleChanged(QString str){
 
     if(json.isArray()){
         QJsonObject d = json.array()[0].toObject();
-        pdfurl = d["url"].toString();
         //QMessageBox::information(this, "", d["name"].toString());
     }
+
+    if(json.isObject()){
+        QJsonObject jsonObj = json.object();
+        if(jsonObj["action"]=="openPDF"){
+            pdfurl = jsonObj["url"].toString();
+            qDebug()<<pdfurl;
+        }
+    }
+
 }
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+
+    MainParent = parent;
 
     timer=new QTimer(this);
     TimerCount=0;  //初始化为零
@@ -264,7 +276,7 @@ MainWindow::MainWindow(QWidget *parent) :
     view->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     setCentralWidget(view);
     view->resize(this->size());
-    view->load(QUrl("file:///D:/crx/pdfserver/client/click.html"));
+    view->load(QUrl("http://1111hui.com/pdf/client/click.html"));
     view->show();
 
     connect(view, SIGNAL(loadFinished(bool)), this, SLOT(viewLoadFinished(bool)) );
@@ -308,7 +320,7 @@ void MainWindow::checkEdge(){
     QRect screenRect = screen->availableGeometry();
 
      if ( rect.right() > screenRect.right()-100  ) {
-        qDebug("Within!!!");
+        //qDebug("Within!!!");
         move( screenRect.right()-rect.width(), pos().y() );
      }
 }
