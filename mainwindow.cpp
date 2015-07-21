@@ -159,17 +159,50 @@ void MainWindow::messageClicked()
 //! [6]
 
 
+void MainWindow::findUrlByPdfView(QWidget *pdfView){
+    QMapIterator<QString, QWebView*> i(pdfViewList);
+    while (i.hasNext()) {
+        i.next();
+        if(pdfView == i.value()){
+            qDebug() << i.key() << ": " << i.value() << endl;
+            pdfViewList.remove(i.key());
+        }
+    }
+}
+
+void MainWindow::onPDFViewClose(QObject* pdfView){
+    QWidget* _pdfView = qobject_cast<QWidget*>(pdfView);
+    findUrlByPdfView(_pdfView);
+    qDebug()<<_pdfView;
+
+}
+
 void MainWindow::openPDFWindow(QString url){
-    QWebView * pdfView = new QWebView(0);
-    QUrl theurl = QUrl(url);
-    pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    //setCentralWidget(pdfView);
-    pdfView->resize(this->size());
-    pdfView->load( theurl );
-    pdfView->show();
-    pdfViewList.append(pdfView);
-    qDebug()<<pdfViewList;
-    pdfView->close()
+    QWebView * pdfView;
+    if(!pdfViewList.contains(url)){
+        pdfView = new QWebView(0);
+        QUrl theurl = QUrl(url);
+        pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+        //setCentralWidget(pdfView);
+        pdfView->resize(this->size());
+        pdfView->load( theurl );
+        pdfView->show();
+        pdfViewList.insert(url, pdfView);
+        pdfView->setAttribute(Qt::WA_DeleteOnClose);
+        pdfView->showNormal();
+        pdfView->resize(640, screenRect.height() );
+        connect(pdfView, SIGNAL(destroyed(QObject*)), this, SLOT(onPDFViewClose(QObject*)) );
+        //void QWebSettings::enablePersistentStorage();
+
+
+    }else{
+        pdfView =pdfViewList.value(url);
+    }
+    qDebug()<<pdfView;
+    qApp->setActiveWindow(pdfView);
+    pdfView->setWindowState( (pdfView->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+    pdfView->activateWindow();
+    pdfView->raise();
 }
 
 
@@ -207,10 +240,10 @@ void MainWindow::updateIcon()
     }
 }
 
-void MainWindow::viewLoadFinished(bool ok){
+void MainWindow::mainViewLoadFinished(bool ok){
     if(ok){
         qDebug()<<"Web loaded."<<ok;
-        view->page()->mainFrame()->evaluateJavaScript(tr("msg('iogjweoij')"));
+        mainView->page()->mainFrame()->evaluateJavaScript(tr("msg('iogjweoij')"));
     }
 }
 
@@ -218,7 +251,7 @@ void MainWindow::viewLoadFinished(bool ok){
  * we use title to pass parameters, limit is 10K=10240B
  * think pass data batchly. In Windows+Webkit limit is 1K=1024B
  */
-void MainWindow::viewTitleChanged(QString str){
+void MainWindow::mainViewTitleChanged(QString str){
 
     qDebug()<<str;
     if(str=="")return;
@@ -272,15 +305,16 @@ MainWindow::MainWindow(QWidget *parent) :
     //using webengine
 //    view = new QWebEngineView(this);
     //using webkit
-    view = new QWebView(this);
-    view->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    setCentralWidget(view);
-    view->resize(this->size());
-    view->load(QUrl("http://1111hui.com/pdf/client/click.html"));
-    view->show();
 
-    connect(view, SIGNAL(loadFinished(bool)), this, SLOT(viewLoadFinished(bool)) );
-    connect(view, SIGNAL(titleChanged(QString)), this, SLOT(viewTitleChanged(QString)) );
+    mainView = new QWebView(this);
+    mainView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    setCentralWidget(mainView);
+    mainView->resize(this->size());
+    mainView->load(QUrl("http://1111hui.com/pdf/client/click.html"));
+    mainView->show();
+
+    connect(mainView, SIGNAL(loadFinished(bool)), this, SLOT(mainViewLoadFinished(bool)) );
+    connect(mainView, SIGNAL(titleChanged(QString)), this, SLOT(mainViewTitleChanged(QString)) );
 
 
     QPushButton * btn = new QPushButton(this);
@@ -293,7 +327,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     screen = new QDesktopWidget();
     QRect rect = getWindowPositionAndSize();
-    QRect screenRect = screen->availableGeometry();
+    screenRect = screen->availableGeometry();
     rect.moveTopRight( screenRect.topRight() );
     setWindowPositionAndSize(rect);
 

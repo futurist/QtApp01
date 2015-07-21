@@ -33,7 +33,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QWidget *basewindow;
-    QWebView *view;
+    QWebView *mainView;
     void showMessageBox();
     Ui::MainWindow *ui;
 
@@ -42,11 +42,13 @@ public:
     QTimer *timer;         //用于闪烁ICON的定时器
     int TimerCount;      //用于计算定时器超时次数，单数显示图标，双数不显示  并且为0时候表示没有消息
     QDesktopWidget* screen;
+    QRect screenRect;
     QPoint dragPosition;
     void setWindowPositionAndSize( QRect& fg);
     QRect getWindowPositionAndSize();
     QString pdfurl;
-    QList<QWebView *> pdfViewList;
+    QMap<QString, QWebView *> pdfViewList;
+    void findUrlByPdfView(QWidget *);
 
     QWidget *MainParent;
     QList<QIcon> iconList;
@@ -63,9 +65,12 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
+public slots:
+    void onPDFViewClose(QObject *);
+
 private slots:
-    void viewTitleChanged(QString str);
-    void viewLoadFinished(bool);
+    void mainViewTitleChanged(QString str);
+    void mainViewLoadFinished(bool);
     void showIconMenu();
     void setIcon(int index);
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
