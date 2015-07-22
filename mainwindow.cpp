@@ -42,25 +42,25 @@ void MainWindow::Window()
 
 void MainWindow::createActions()
 {
-    minimizeAction = new QAction(tr("最小化"), this);
-    connect(minimizeAction, SIGNAL(triggered()), this, SLOT(hide()));
+//    minimizeAction = new QAction(tr("最小化"), this);
+//    connect(minimizeAction, SIGNAL(triggered()), this, SLOT(hide()));
 
-    maximizeAction = new QAction(tr("最大化"), this);
-    connect(maximizeAction, SIGNAL(triggered()), this, SLOT(showMaximized()));
+//    maximizeAction = new QAction(tr("最大化"), this);
+//    connect(maximizeAction, SIGNAL(triggered()), this, SLOT(showMaximized()));
 
-    restoreAction = new QAction(tr("恢复"), this);
-    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormalIcon()));
+//    restoreAction = new QAction(tr("恢复"), this);
+//    connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormalIcon()));
 
-    quitAction = new QAction(tr("&Quit"), this);
+    quitAction = new QAction(tr("退出"), this);
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 }
 
 void MainWindow::createTrayIcon()
 {
     trayIconMenu = new QMenu(this);
-    trayIconMenu->addAction(minimizeAction);
-    trayIconMenu->addAction(maximizeAction);
-    trayIconMenu->addAction(restoreAction);
+//    trayIconMenu->addAction(minimizeAction);
+//    trayIconMenu->addAction(maximizeAction);
+//    trayIconMenu->addAction(restoreAction);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction);
 
@@ -78,9 +78,9 @@ void MainWindow::showIconMenu(){
 void MainWindow::setVisible(bool visible)
 {
 
-    minimizeAction->setEnabled(visible);
-    maximizeAction->setEnabled(!isMaximized());
-    restoreAction->setEnabled(isMaximized() || !visible);
+    //minimizeAction->setEnabled(visible);
+    //maximizeAction->setEnabled(!isMaximized());
+    //restoreAction->setEnabled(isMaximized() || !visible);
     QMainWindow::setVisible(visible);
 }
 //! [1]
@@ -148,6 +148,9 @@ void MainWindow::showMessage(QString title, QString msg="", int iconNum=1)
 //! [6]
 void MainWindow::messageClicked()
 {
+    this->show();
+    this->setWindowState( (this->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+
     if(TimerCount>0){
         showNormalIcon();
         //QMessageBox::information(0, tr("Systray"), tr("Sorry, I already gave what help I could.\nMaybe you should try asking a human?"));
@@ -173,7 +176,7 @@ void MainWindow::findUrlByPdfView(QWidget *pdfView){
 void MainWindow::onPDFViewClose(QObject* pdfView){
     QWidget* _pdfView = qobject_cast<QWidget*>(pdfView);
     findUrlByPdfView(_pdfView);
-    qDebug()<<_pdfView;
+    qDebug()<<"Exit:"<<_pdfView;
 
 }
 
@@ -183,16 +186,20 @@ void MainWindow::openPDFWindow(QString url){
         pdfView = new QWebView(0);
         QUrl theurl = QUrl(url);
         pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        //setCentralWidget(pdfView);
-        pdfView->resize(this->size());
+
         pdfView->load( theurl );
         pdfView->show();
         pdfViewList.insert(url, pdfView);
         pdfView->setAttribute(Qt::WA_DeleteOnClose);
         pdfView->showNormal();
-        pdfView->resize(640, screenRect.height() );
+
+        int frameHeight = pdfView->frameGeometry().height()-pdfView->geometry().height();
+        pdfView->move( (screenRect.width() - 640)/2, screenRect.y() );
+        pdfView->resize( 640, screenRect.height()-frameHeight );
+
+
         connect(pdfView, SIGNAL(destroyed(QObject*)), this, SLOT(onPDFViewClose(QObject*)) );
-        //void QWebSettings::enablePersistentStorage();
+        //pdfView->settings()->enablePersistentStorage(QDir::tempPath());
 
 
     }else{
@@ -247,12 +254,25 @@ void MainWindow::mainViewLoadFinished(bool ok){
     }
 }
 
+
+QString rstrip(const QString& str) {
+  int n = str.size() - 1;
+  for (; n >= 0; --n) {
+    if (!str.at(n).isSpace()) {
+      return str.left(n + 1);
+    }
+  }
+  return "";
+}
+
+
 /******
  * we use title to pass parameters, limit is 10K=10240B
  * think pass data batchly. In Windows+Webkit limit is 1K=1024B
  */
 void MainWindow::mainViewTitleChanged(QString str){
 
+    str = str.trimmed();
     qDebug()<<str;
     if(str=="")return;
 
@@ -295,7 +315,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // no window decorations
 //    setWindowFlags(Qt::FramelessWindowHint);
 
-    ui->setupUi(this);
+    //ui->setupUi(this);
 
     basewindow = new QWidget;
     basewindow->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
@@ -312,6 +332,9 @@ MainWindow::MainWindow(QWidget *parent) :
     mainView->resize(this->size());
     mainView->load(QUrl("http://1111hui.com/pdf/client/click.html"));
     mainView->show();
+
+    Qt::WindowFlags flags = this->windowFlags();
+    this->setWindowFlags(flags | Qt::WindowStaysOnTopHint);
 
     connect(mainView, SIGNAL(loadFinished(bool)), this, SLOT(mainViewLoadFinished(bool)) );
     connect(mainView, SIGNAL(titleChanged(QString)), this, SLOT(mainViewTitleChanged(QString)) );
@@ -330,7 +353,7 @@ MainWindow::MainWindow(QWidget *parent) :
     screenRect = screen->availableGeometry();
     rect.moveTopRight( screenRect.topRight() );
     setWindowPositionAndSize(rect);
-
+    qDebug()<<"screen"<<screen->screenGeometry()<<screen->availableGeometry();
     this->installEventFilter(this);
 
 }
@@ -353,7 +376,7 @@ void MainWindow::checkEdge(){
     QRect rect = frameGeometry();
     QRect screenRect = screen->availableGeometry();
 
-     if ( rect.right() > screenRect.right()-100  ) {
+     if ( rect.right() > screenRect.right()-30  ) {
         //qDebug("Within!!!");
         move( screenRect.right()-rect.width(), pos().y() );
      }
