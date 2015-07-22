@@ -163,7 +163,7 @@ void MainWindow::messageClicked()
 
 
 void MainWindow::findUrlByPdfView(QWidget *pdfView){
-    QMapIterator<QString, QWebView*> i(pdfViewList);
+    QMapIterator<QString, QWebEngineView*> i(pdfViewList);
     while (i.hasNext()) {
         i.next();
         if(pdfView == i.value()){
@@ -181,9 +181,9 @@ void MainWindow::onPDFViewClose(QObject* pdfView){
 }
 
 void MainWindow::openPDFWindow(QString url){
-    QWebView * pdfView;
+    QWebEngineView * pdfView;
     if(!pdfViewList.contains(url)){
-        pdfView = new QWebView(0);
+        pdfView = new QWebEngineView(0);
         QUrl theurl = QUrl(url);
         pdfView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 
@@ -249,7 +249,8 @@ void MainWindow::updateIcon()
 void MainWindow::mainViewLoadFinished(bool ok){
     if(ok){
         qDebug()<<"Web loaded."<<ok;
-        mainView->page()->mainFrame()->evaluateJavaScript(tr("msg('iogjweoij')"));
+        //mainView->mainFrame()->evaluateJavaScript(tr("msg('iogjweoij')"));
+        mainView->page()->runJavaScript(tr("msg('iogjweoij')"));
     }
 }
 
@@ -322,10 +323,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     pdfurl = "";
     //using webengine
-//    view = new QWebEngineView(this);
+    mainView = new QWebEngineView(this);
     //using webkit
-
-    mainView = new QWebView(this);
+//    mainView = new QWebView(this);
     mainView->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     setCentralWidget(mainView);
     mainView->resize(this->size());

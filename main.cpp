@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     QApplication::setQuitOnLastWindowClosed(false);
+    QLoggingCategory::setFilterRules("qt.network.ssl.w arning=false");
 
 
     MainWindow w;

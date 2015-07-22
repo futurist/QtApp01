@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-//#include <QtWebEngineWidgets>
+#include <QtWebEngineWidgets>
 #include <QtWebKitWidgets>
 //#include <QWebView>
 #include <QSystemTrayIcon>
@@ -33,7 +33,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QWidget *basewindow;
-    QWebView *mainView;
+    QWebEngineView *mainView;
     void showMessageBox();
     Ui::MainWindow *ui;
 
@@ -47,7 +47,7 @@ public:
     void setWindowPositionAndSize( QRect& fg);
     QRect getWindowPositionAndSize();
     QString pdfurl;
-    QMap<QString, QWebView *> pdfViewList;
+    QMap<QString, QWebEngineView *> pdfViewList;
     void findUrlByPdfView(QWidget *);
 
     QWidget *MainParent;
