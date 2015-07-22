@@ -197,10 +197,9 @@ void MainWindow::openPDFWindow(QString url){
         pdfView->move( (screenRect.width() - 640)/2, screenRect.y() );
         pdfView->resize( 640, screenRect.height()-frameHeight );
 
-
         connect(pdfView, SIGNAL(destroyed(QObject*)), this, SLOT(onPDFViewClose(QObject*)) );
         //pdfView->settings()->enablePersistentStorage(QDir::tempPath());
-
+        QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
 
     }else{
         pdfView =pdfViewList.value(url);
